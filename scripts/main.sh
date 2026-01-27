@@ -18,14 +18,26 @@ ensure_directories
 # Step 1: Fetch following list
 echo "=== Step 1: Fetching following list ==="
 FOLLOWING_LIST=$("$SCRIPT_DIR/fetch-following.sh")
-following_count=$(echo "$FOLLOWING_LIST" | jq 'length')
+
+if [ -z "$FOLLOWING_LIST" ] || [ "$FOLLOWING_LIST" = "[]" ]; then
+  echo "No users being followed or error fetching list"
+  following_count=0
+else
+  following_count=$(echo "$FOLLOWING_LIST" | jq 'length' 2>/dev/null || echo "0")
+fi
+
 echo "Found $following_count users being followed"
 echo ""
 
-# Step 2: Sync profiles
-echo "=== Step 2: Syncing profiles ==="
-echo "$FOLLOWING_LIST" | "$SCRIPT_DIR/sync-profiles.sh"
-echo ""
+# Step 2: Sync profiles (only if we have users to process)
+if [ "$following_count" -gt 0 ]; then
+  echo "=== Step 2: Syncing profiles ==="
+  echo "$FOLLOWING_LIST" | "$SCRIPT_DIR/sync-profiles.sh"
+  echo ""
+else
+  echo "=== Step 2: Skipping profile sync (no users) ==="
+  echo ""
+fi
 
 # Step 3: Sync feed posts
 echo "=== Step 3: Syncing feed posts ==="

@@ -1,5 +1,6 @@
 #!/bin/bash
 # Fetch the list of users the owner is following from GitHub API
+# Uses unauthenticated requests (works for public profiles, 60 requests/hour limit)
 
 set -e
 
@@ -9,19 +10,30 @@ source "$SCRIPT_DIR/config.sh"
 
 REPO_OWNER=$(get_repo_owner)
 
-echo "Fetching following list for: $REPO_OWNER"
+echo "Fetching following list for: $REPO_OWNER" >&2
 
 page=1
 all_following="[]"
 
 while true; do
-  response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-    -H "Accept: application/vnd.github.v3+json" \
+  # Use unauthenticated request - works for public user data
+  response=$(curl -s -H "Accept: application/vnd.github.v3+json" \
     "https://api.github.com/users/$REPO_OWNER/following?per_page=100&page=$page")
   
+  # Check for error response
+  if echo "$response" | jq -e '.message' > /dev/null 2>&1; then
+    error_msg=$(echo "$response" | jq -r '.message')
+    echo "GitHub API error: $error_msg" >&2
+    # Return empty array on error
+    echo "[]"
+    exit 0
+  fi
+  
   if ! echo "$response" | jq -e 'type == "array"' > /dev/null 2>&1; then
-    echo "Error fetching following list" >&2
-    break
+    echo "Error: Invalid response from GitHub API" >&2
+    echo "Response: $response" >&2
+    echo "[]"
+    exit 0
   fi
   
   count=$(echo "$response" | jq 'length')

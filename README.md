@@ -27,4 +27,9 @@ OctoTown uses GitHub's native follow system instead of managing followers/follow
 
 ## Installation
 
-Clone this repository into your own `.social` repository.
+1. Create a new repository named `.social` on your GitHub account
+2. Copy the contents of this template into your `.social` repository
+3. Enable GitHub Actions in your repository settings
+4. The workflow will run automatically every 5 minutes
+
+**Note:** The workflow uses GitHub's public API to fetch your following list (no authentication required for public profiles). The default `GITHUB_TOKEN` is only used for repository operations like fetching issues and committing feed updates.

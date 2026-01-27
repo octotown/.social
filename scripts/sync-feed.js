@@ -82,7 +82,7 @@ async function resolveOriginalPost(repostUrl) {
 }
 
 async function processIssue(issue, author) {
-  const { title, number: id, created_at, body, html_url } = issue;
+  const { title, number: id, created_at, body, html_url, labels } = issue;
   
   let postType, content, original;
   
@@ -124,6 +124,18 @@ original_author: ${original.author}
 original_id: ${original.id}
 original_url: ${original.url}
 original_timestamp: ${original.timestamp}`;
+  }
+  
+  // Add labels if present
+  if (labels && labels.length > 0) {
+    frontmatter += '\nlabels:';
+    for (const label of labels) {
+      frontmatter += `\n  - name: "${label.name}"`;
+      frontmatter += `\n    color: "${label.color}"`;
+      if (label.description) {
+        frontmatter += `\n    description: "${label.description}"`;
+      }
+    }
   }
   
   frontmatter += '\n---\n';

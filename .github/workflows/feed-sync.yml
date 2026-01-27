@@ -4,6 +4,10 @@ on:
   schedule:
     # Run every 5 minutes
     - cron: '*/5 * * * *'
+  issues:
+    types: [opened] # Trigger when a new issue is created
+  issue_comment:
+    types: [created] # Trigger when a comment is added to an issue
   workflow_dispatch: # Allow manual trigger
 
 permissions:
@@ -14,12 +18,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
 

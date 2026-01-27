@@ -1,6 +1,6 @@
 # GitHub Actions Workflows for .social Repositories
 
-This repository contains the GitHub Actions workflows that users need to copy to their `.social` repository.
+This is a template repository of OctoTown's `.social` protocol, containing the GitHub Actions workflows that users need to maintain their feeds and followers.
 
 ## Workflows
 
@@ -12,6 +12,4 @@ Automatically accepts follower PRs where the PR author matches the filename bein
 
 ## Installation
 
-Copy the `.github/workflows/` folder to your `.social` repository as `.github/workflows/`.
-
-Or use this repository as a template for your own `.social` repository.
+Clone this repository into your own `.social` repository.

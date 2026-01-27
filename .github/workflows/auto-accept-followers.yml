@@ -1,0 +1,98 @@
+name: Auto-Accept Followers
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - 'followers/**'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  validate-and-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate follower PR
+        id: validate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          #!/bin/bash
+          set -e
+
+          echo "PR Author: $PR_AUTHOR"
+          echo "PR Number: $PR_NUMBER"
+
+          # Get the list of files changed in this PR
+          files_changed=$(gh pr view $PR_NUMBER --json files --jq '.files[].path')
+          file_count=$(echo "$files_changed" | wc -l)
+
+          echo "Files changed: $files_changed"
+          echo "File count: $file_count"
+
+          # Validate: exactly one file changed
+          if [ "$file_count" -ne 1 ]; then
+            echo "❌ PR must modify exactly one file"
+            echo "valid=false" >> $GITHUB_OUTPUT
+            echo "reason=PR must modify exactly one file in followers/" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Validate: file is in followers/ directory
+          if [[ ! "$files_changed" =~ ^followers/ ]]; then
+            echo "❌ File must be in followers/ directory"
+            echo "valid=false" >> $GITHUB_OUTPUT
+            echo "reason=File must be in followers/ directory" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Get the filename (username being added)
+          follower_file=$(basename "$files_changed")
+          echo "Follower file: $follower_file"
+
+          # Validate: filename matches PR author
+          if [ "$follower_file" != "$PR_AUTHOR" ]; then
+            echo "❌ Filename ($follower_file) does not match PR author ($PR_AUTHOR)"
+            echo "valid=false" >> $GITHUB_OUTPUT
+            echo "reason=Filename must match your GitHub username" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Check if PR author is blocked
+          if [ -f "blocked/$PR_AUTHOR" ]; then
+            echo "❌ User is blocked"
+            echo "valid=false" >> $GITHUB_OUTPUT
+            echo "reason=You are blocked by this user" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "✅ All validations passed"
+          echo "valid=true" >> $GITHUB_OUTPUT
+
+      - name: Auto-merge valid PR
+        if: steps.validate.outputs.valid == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          echo "Merging follower request from $PR_AUTHOR"
+          gh pr merge $PR_NUMBER --merge --delete-branch
+          gh pr comment $PR_NUMBER --body "✅ Welcome, @$PR_AUTHOR! You are now a follower."
+
+      - name: Close invalid PR
+        if: steps.validate.outputs.valid == 'false'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REASON: ${{ steps.validate.outputs.reason }}
+        run: |
+          echo "Closing invalid follower request"
+          gh pr close $PR_NUMBER --comment "❌ This follow request was rejected: $REASON"

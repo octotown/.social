@@ -1,20 +1,16 @@
-name: Feed Sync
+name: Profile Sync
 
 on:
   schedule:
-    # Run every 30 minutes
-    - cron: '*/30 * * * *'
-  issues:
-    types: [opened] # Trigger when a new issue is created
-  issue_comment:
-    types: [created] # Trigger when a comment is added to an issue
+    # Run once a day
+    - cron: '0 0 * * *'
   workflow_dispatch: # Allow manual trigger
 
 permissions:
   contents: write
 
 jobs:
-  sync-feed:
+  sync-profiles:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -22,29 +18,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '20'
-
       - name: Make scripts executable
         run: chmod +x scripts/*.sh
 
-      - name: Run feed sync
+      - name: Sync profiles
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./scripts/feed-sync.sh
+        run: ./scripts/profile-sync.sh
 
       - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "OctoTown Bot"
-          git add feed/
+          git add following/
           
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Sync feed $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            git commit -m "Sync profiles $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
             git pull --rebase origin main || true
             git push
           fi
